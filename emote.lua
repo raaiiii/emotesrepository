@@ -161,7 +161,7 @@ local function GetAsset(asset)
         if not filename:find("%.") then filename = filename .. ".png" end
         filename = filename:gsub("[%c%s%*%?%\"%<%>%|]", "_")
         
-        local path = "Famee/Assets/" .. filename
+        local path = "7yd7/Assets/" .. filename
         
         if isfile(path) then
             local success, result = pcall(function() return getcustomasset(path) end)
