@@ -1,7 +1,7 @@
 
 if _G.EmotesGUIRunning then
     getgenv().Notify({
-        Title = 'Famee | Emote',
+        Title = 'LovFame | Emote',
         Content = '⚠️ It works It actually works',
         Duration = 5
     })
@@ -110,7 +110,7 @@ local function SafeLoad(url, name)
     
     if not success or not content or content == "" then
         getgenv().Notify({
-            Title = 'Famee | Error',
+            Title = 'LovFame | Error',
             Content = 'Failed to download ' .. (name or "script") .. ' after 3 attempts.',
             Duration = 5
         })
@@ -119,19 +119,19 @@ local function SafeLoad(url, name)
 
     local func, err = loadstring(content)
     if not func then
-        warn("Famee | SafeLoad: Failed to parse " .. (name or "script") .. ": " .. tostring(err))
+        warn("LovFame | SafeLoad: Failed to parse " .. (name or "script") .. ": " .. tostring(err))
         return function() end
     end
 
     local ok, res = pcall(func)
     if not ok then
-        warn("Famee | SafeLoad: Error executing " .. (name or "script") .. ": " .. tostring(res))
+        warn("LovFame | SafeLoad: Error executing " .. (name or "script") .. ": " .. tostring(res))
         return function() end
     end
     return res
 end
 
-SafeLoad("https://raw.githubusercontent.com/Famee/Menu-Famee/refs/heads/Script/GUIS/Off-site/Notify.lua", "Notify System")
+SafeLoad("https://raw.githubusercontent.com/LovFame/Menu-LovFame/refs/heads/Script/GUIS/Off-site/Notify.lua", "Notify System")
 
 local function GetAsset(asset)
     if not asset or asset == "" then return "" end
@@ -161,7 +161,7 @@ local function GetAsset(asset)
         if not filename:find("%.") then filename = filename .. ".png" end
         filename = filename:gsub("[%c%s%*%?%\"%<%>%|]", "_")
         
-        local path = "Famee/Assets/" .. filename
+        local path = "LovFame/Assets/" .. filename
         
         if isfile(path) then
             local success, result = pcall(function() return getcustomasset(path) end)
@@ -170,10 +170,10 @@ local function GetAsset(asset)
                 return result
             end
         else
-            if not isfolder("Famee/Assets") then 
+            if not isfolder("LovFame/Assets") then 
                 pcall(function()
-                    if not isfolder("Famee") then makefolder("Famee") end
-                    makefolder("Famee/Assets") 
+                    if not isfolder("LovFame") then makefolder("LovFame") end
+                    makefolder("LovFame/Assets") 
                 end)
             end
             
@@ -181,7 +181,7 @@ local function GetAsset(asset)
             if success and content and content ~= "" then
                 local low = content:sub(1, 100):lower()
                 if low:find("<!doctype") or low:find("<html") or low:find("<head") then
-                    warn("Famee | GetAsset: Downloaded content appears to be HTML. Link might be incorrect: " .. targetUrl)
+                    warn("LovFame | GetAsset: Downloaded content appears to be HTML. Link might be incorrect: " .. targetUrl)
                     return ""
                 end
                 
@@ -405,7 +405,7 @@ local function AreWheelAnimMetaEqual(a, b)
         and a.SheetUrl == b.SheetUrl
 end
 
-local ConfigPath = "Famee/EmoteSettings.json"
+local ConfigPath = "LovFame/EmoteSettings.json"
 local Config = {
     NotifyEnabled = true,
     SearchVisible = true,
@@ -443,7 +443,7 @@ local function ApplyUIVisibility()
 end
 
 local function SaveConfig()
-    if not isfolder("Famee") then makefolder("Famee") end
+    if not isfolder("LovFame") then makefolder("LovFame") end
     writefile(ConfigPath, HttpService:JSONEncode(Config))
 end
 
@@ -464,7 +464,7 @@ getgenv().Notify = function(data)
     end
 end
 
-local SettingsLib = SafeLoad("https://raw.githubusercontent.com/Famee/Hub/refs/heads/Branch/GUIS/Settings.lua", "Settings Library")
+local SettingsLib = SafeLoad("https://raw.githubusercontent.com/LovFame/Hub/refs/heads/Branch/GUIS/Settings.lua", "Settings Library")
 
 local ToggleContainer = Instance.new("Frame")
 ToggleContainer.Name = "open/Close"
@@ -771,14 +771,14 @@ CopyBtn.MouseButton1Click:Connect(function()
     getgenv().Notify({Title = "Discord", Content = "Link copied to clipboard!", Duration = 3})
 end)
 
-local ThemeConfigPath = "Famee/EmoteThemes.json"
+local ThemeConfigPath = "LovFame/EmoteThemes.json"
 
 local lastSaveTime = 0
 local saveDebounce = 1
 local pendingSave = false
 
 local function SaveThemesImplementation(themes)
-    if not isfolder("Famee") then makefolder("Famee") end
+    if not isfolder("LovFame") then makefolder("LovFame") end
     local toSave = { Themes = {}, Order = {}, Selected = themes.Selected or currentThemeName }
     
     toSave.Order = themes.Order or {}
@@ -1066,7 +1066,7 @@ end
 local function ApplyTheme(themeData)
     if State.isApplyingTheme then return end
     if not themeData then
-        warn("Famee | ApplyTheme: themeData is nil. Falling back to Default.")
+        warn("LovFame | ApplyTheme: themeData is nil. Falling back to Default.")
         themeData = themes and themes["Default"] or nil
         if not themeData then return end
     end
@@ -1828,7 +1828,7 @@ local function HandleImportPrompt(typeStr)
                     State.isApplyingTheme = false
                     ApplyTheme(themeToApply)
                 else
-                    warn("Famee | Missing Default theme during import fallback")
+                    warn("LovFame | Missing Default theme during import fallback")
                 end
             end
             if d.Settings and (typeStr == "All" or typeStr == "Settings") then
@@ -1877,11 +1877,11 @@ BtnImportSettings.MouseButton1Click:Connect(function() HandleImportPrompt("Setti
 BtnImportFavorites.MouseButton1Click:Connect(function() HandleImportPrompt("Favorites") end)
 
 pcall(function()
-    SafeLoad("https://raw.githubusercontent.com/Famee/Hub/Branch/GUIS/count-emote", "Count Emote")
+    SafeLoad("https://raw.githubusercontent.com/LovFame/Hub/Branch/GUIS/count-emote", "Count Emote")
 end)
 
 getgenv().Notify({
-    Title = 'Famee | Emote',
+    Title = 'LovFame | Emote',
     Content = '⚠️ Script loading...',
     Duration = 5
 })
@@ -2680,7 +2680,7 @@ local function toggleFavorite(emoteId, emoteName)
     if found then
         table.remove(State.favoriteEmotes, index)
         getgenv().Notify({
-            Title = 'Famee | Favorite System',
+            Title = 'LovFame | Favorite System',
             Content = '🗑️ Removed "' .. emoteName .. '" from favorites',
             Duration = 3
         })
@@ -2690,7 +2690,7 @@ local function toggleFavorite(emoteId, emoteName)
             name = emoteName .. " - ⭐"
         })
         getgenv().Notify({
-            Title = 'Famee | Favorite System',
+            Title = 'LovFame | Favorite System',
             Content = '✅ Added "' .. emoteName .. '" to favorites',
             Duration = 3
         })
@@ -2722,7 +2722,7 @@ local function toggleFavoriteAnimation(animationData)
     if found then
         table.remove(State.favoriteAnimations, index)
         getgenv().Notify({
-            Title = 'Famee | Favorite System',
+            Title = 'LovFame | Favorite System',
             Content = '🗑️ Removed "' .. animationData.name .. '" from favorites',
             Duration = 3
         })
@@ -2733,7 +2733,7 @@ local function toggleFavoriteAnimation(animationData)
             bundledItems = animationData.bundledItems
         })
         getgenv().Notify({
-            Title = 'Famee | Favorite System',
+            Title = 'LovFame | Favorite System',
             Content = '✅ Added "' .. animationData.name .. '" to favorites',
             Duration = 3
         })
@@ -2805,7 +2805,7 @@ local function applyAnimation(animationData)
     
     if not animate or not humanoid then
         getgenv().Notify({
-            Title = 'Famee | Animation Error',
+            Title = 'LovFame | Animation Error',
             Content = '❌ Animate or Humanoid not found',
             Duration = 3
         })
@@ -2819,7 +2819,7 @@ local function applyAnimation(animationData)
     
     if not bundledItems then
         getgenv().Notify({
-            Title = 'Famee | Animation Error', 
+            Title = 'LovFame | Animation Error', 
             Content = '❌ No bundled items found',
             Duration = 3
         })
@@ -3061,7 +3061,7 @@ local function fetchAllEmotes()
     State.totalEmotesLoaded = 0
 
     local success, result = pcall(function()
-        local jsonContent = game:HttpGet("https://raw.githubusercontent.com/Famee/sniper-Emote/refs/heads/test/EmoteSniper.json")
+        local jsonContent = game:HttpGet("https://raw.githubusercontent.com/LovFame/sniper-Emote/refs/heads/test/EmoteSniper.json")
         
         if jsonContent and jsonContent ~= "" then
             local data = HttpService:JSONDecode(jsonContent)
@@ -3102,7 +3102,7 @@ local function fetchAllEmotes()
     updateEmotes()
     
     getgenv().Notify({
-        Title = 'Famee | Emote',
+        Title = 'LovFame | Emote',
         Content = "🎉 Loaded Successfully! Total Emotes: " .. State.totalEmotesLoaded,
         Duration = 5
     })
@@ -3118,7 +3118,7 @@ local function fetchAllAnimations()
     State.animationsData = {}
     
     local success, result = pcall(function()
-        local jsonContent = game:HttpGet("https://raw.githubusercontent.com/Famee/sniper-Emote/refs/heads/test/AnimationSniper.json")
+        local jsonContent = game:HttpGet("https://raw.githubusercontent.com/LovFame/sniper-Emote/refs/heads/test/AnimationSniper.json")
         
         if jsonContent and jsonContent ~= "" then
             local data = HttpService:JSONDecode(jsonContent)
@@ -3150,7 +3150,7 @@ end
 local function searchEmotes(searchTerm)
     if State.isLoading then
         getgenv().Notify({
-            Title = 'Famee | Emote',
+            Title = 'LovFame | Emote',
             Content = '⚠️ Loading please wait...',
             Duration = 5
         })
@@ -3231,7 +3231,7 @@ end
 local function searchAnimations(searchTerm)
     if State.isLoading then
         getgenv().Notify({
-            Title = 'Famee | Animation',
+            Title = 'LovFame | Animation',
             Content = '⚠️ Loading please wait...',
             Duration = 5
         })
@@ -3373,7 +3373,7 @@ local function onCharacterAdded(character)
     task.wait(.3)
     applyAnimation(getgenv().lastPlayedAnimation)
     getgenv().Notify({
-        Title = 'Famee | Auto Reload Animation',
+        Title = 'LovFame | Auto Reload Animation',
         Content = '🔄 The last animation was automatically \n reapplied',
         Duration = 3
     })
@@ -3444,7 +3444,7 @@ local function toggleEmoteWalk()
 
     if State.emotesWalkEnabled then
         getgenv().Notify({
-            Title = 'Famee | Emote Freeze',
+            Title = 'LovFame | Emote Freeze',
             Content = "🔒 Emote freeze ON",
             Duration = 5
         })
@@ -3457,7 +3457,7 @@ local function toggleEmoteWalk()
         end
     else
         getgenv().Notify({
-            Title = 'Famee | Emote Freeze',
+            Title = 'LovFame | Emote Freeze',
             Content = '🔓 Emote freeze OFF',
             Duration = 5
         })
@@ -3481,7 +3481,7 @@ local function toggleSpeedEmote()
 
     if State.speedEmoteEnabled then
         getgenv().Notify({
-            Title = 'Famee | Speed Emote',
+            Title = 'LovFame | Speed Emote',
             Content = "⚡ Speed Emote ON",
             Duration = 5
         })
@@ -3489,7 +3489,7 @@ local function toggleSpeedEmote()
         stopCurrentEmote()
     else
         getgenv().Notify({
-            Title = 'Famee | Speed Emote',
+            Title = 'LovFame | Speed Emote',
             Content = '⚡ Speed Emote OFF',
             Duration = 5
         })
@@ -3508,7 +3508,7 @@ local function toggleFavoriteMode()
     if State.favoriteEnabled then
         ApplyFavoriteButtonVisual()
         getgenv().Notify({
-            Title = 'Famee | Favorite System',
+            Title = 'LovFame | Favorite System',
             Content = "🔒 Favorite ON",
             Duration = 5
         })
@@ -3521,7 +3521,7 @@ local function toggleFavoriteMode()
     else
         ApplyFavoriteButtonVisual()
         getgenv().Notify({
-            Title = 'Famee | Favorite System',
+            Title = 'LovFame | Favorite System',
             Content = '🔓 Favorite OFF',
             Duration = 3
         })
@@ -3572,13 +3572,13 @@ local function toggleAutoReload()
     
     if getgenv().autoReloadEnabled then
         getgenv().Notify({
-            Title = 'Famee | Auto Reload Animation',
+            Title = 'LovFame | Auto Reload Animation',
             Content = "🔄 Auto Reload ON",
             Duration = 5
         })
     else
         getgenv().Notify({
-            Title = 'Famee | Auto Reload Animation',
+            Title = 'LovFame | Auto Reload Animation',
             Content = '🔄 Auto Reload OFF',
             Duration = 3
         })
@@ -3709,7 +3709,7 @@ function connectEvents()
                     end)
                     
                     getgenv().Notify({
-                        Title = 'Famee | Animation',
+                        Title = 'LovFame | Animation',
                         Content = '📄 Changed to Emote > Animation Mode',
                         Duration = 3
                     })
@@ -3727,7 +3727,7 @@ function connectEvents()
                     end
                     
                     getgenv().Notify({
-                        Title = 'Famee | Emote', 
+                        Title = 'LovFame | Emote', 
                         Content = '📄 Changed to Animation > Emote Mode',
                         Duration = 3
                     })
@@ -3885,7 +3885,7 @@ enterHUDEditor = function()
         for name, el in pairs(getMovableElements()) do
             if HUD.DefaultPositions[name] then el.Position = HUD.DefaultPositions[name] end
         end
-        getgenv().Notify({ Title = "Famee | HUD Editor", Content = "🔄 Positions reset to default", Duration = 3 })
+        getgenv().Notify({ Title = "LovFame | HUD Editor", Content = "🔄 Positions reset to default", Duration = 3 })
     end))
 
     if UI.Search then UI.Search.TextEditable = false; UI.Search.Active = false; pcall(function() UI.Search:ReleaseFocus() end) end
@@ -4036,7 +4036,7 @@ enterHUDEditor = function()
         end))
     end
 
-    getgenv().Notify({ Title = "Famee | HUD Editor", Content = "✏️ Drag elements to reposition", Duration = 5 })
+    getgenv().Notify({ Title = "LovFame | HUD Editor", Content = "✏️ Drag elements to reposition", Duration = 5 })
 end
 
 State.RefreshUI = function()
@@ -4191,9 +4191,9 @@ task.spawn(function()
 end)
 
 if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
-    SafeLoad("https://raw.githubusercontent.com/Famee/Hub/refs/heads/Branch/GUIS/OpenEmote.lua", "Open Emote")
+    SafeLoad("https://raw.githubusercontent.com/LovFame/Hub/refs/heads/Branch/GUIS/OpenEmote.lua", "Open Emote")
     getgenv().Notify({
-        Title = 'Famee | Emote Mobile',
+        Title = 'LovFame | Emote Mobile',
         Content = '📱 Added emote open button for ease of use',
         Duration = 10
     })
@@ -4201,7 +4201,7 @@ end
 
 if UserInputService.KeyboardEnabled then
     getgenv().Notify({
-        Title = 'Famee | Emote PC',
+        Title = 'LovFame | Emote PC',
         Content = '💻 Open menu press button "."',
         Duration = 10
     })
