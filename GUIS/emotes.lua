@@ -1,7 +1,16 @@
---[[ CREDITS TO DSC/735919230050107442
+--[[ 
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Https:DSC/735919230050107442
 Source script from: https://github.com/Roblox/creator-docs/blob/main/content/en-us/characters/emotes.md
 
 
+-- Discord 
+https://discord.gg/ugg6MqEQTa 
+-- Discord Profile
+lovfamee
+-- Guns
+https://guns.lol/saxrifice
 
 
 
@@ -56,7 +65,9 @@ Source script from: https://github.com/Roblox/creator-docs/blob/main/content/en-
 
 
 
-.
+
+
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
 ]]
 
 if _G.EmotesGUIRunning then
