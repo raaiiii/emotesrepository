@@ -1,3 +1,8 @@
+--[[ CREDITS TO 7YD7
+Source script from: https://github.com/Roblox/creator-docs/blob/main/content/en-us/characters/emotes.md
+]]
+
+
 
 if _G.EmotesGUIRunning then
     getgenv().Notify({
@@ -767,7 +772,7 @@ local CopyBtn = SettingsLib:Create("TextButton", {
 }, { SettingsLib:Create("UICorner", {CornerRadius = UDim.new(0, 6)}) })
 
 CopyBtn.MouseButton1Click:Connect(function()
-    setclipboard("goesfame / text me")
+    setclipboard("https://discord.gg/ugg6MqEQTa")
     getgenv().Notify({Title = "Discord", Content = "Link copied to clipboard!", Duration = 3})
 end)
 
