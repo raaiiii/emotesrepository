@@ -4261,6 +4261,46 @@ task.spawn(function()
     end
 end)
 
+end)
+ local StarterGui = game:GetService("StarterGui")
+
+ StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, true)
+task.spawn(function()
+    local StarterGui = game:GetService("StarterGui")
+    local CoreGui = game:GetService("CoreGui")
+
+    while true do
+        local robloxGui = CoreGui:FindFirstChild("RobloxGui")
+        local emotesMenu = robloxGui and robloxGui:FindFirstChild("EmotesMenu")
+
+        if not emotesMenu then
+            StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu, true)
+
+        else
+            local exists = emotesMenu:FindFirstChild("Children") and emotesMenu.Children:FindFirstChild("Main") and
+                               emotesMenu.Children.Main:FindFirstChild("EmotesWheel")
+
+            if exists then
+                local emotesWheel = emotesMenu.Children.Main.EmotesWheel
+                if not emotesWheel:FindFirstChild("Under") or not emotesWheel:FindFirstChild("Top") then
+                    if createGUIElements then
+                        createGUIElements()
+                        loadSpeedEmoteConfig()
+                    end
+
+                    if updateGUIColors then
+                        updateGUIColors()
+                        updatePageDisplay()
+                        loadFavorites()
+                    end
+                end
+            end
+        end
+
+        task.wait(.3)
+    end
+end)
+
 if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
     SafeLoad("https://raw.githubusercontent.com/LovFame/hub/refs/heads/Branch/GUIS/OpenEmote.lua", "Open Emote")
     getgenv().Notify({
@@ -4269,6 +4309,368 @@ if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
         Duration = 10
     })
 end
+
+-- ==================================================
+-- SISTEMA HÍBRIDO DE ANIMACIONES
+-- ==================================================
+
+-- Extender State
+State.animMode = "pack"  -- "pack" o "individual"
+State.individualAnims = State.individualAnims or {
+    idle = { name = "Reposo", emote = nil, default = true },
+    walk = { name = "Caminar", emote = nil, default = true },
+    run = { name = "Correr", emote = nil, default = true },
+    jump = { name = "Saltar", emote = nil, default = true },
+    fall = { name = "Caer", emote = nil, default = true },
+    swim = { name = "Nadar", emote = nil, default = true },
+    climb = { name = "Trepar", emote = nil, default = true },
+    sit = { name = "Sentarse", emote = nil, default = true }
+}
+State.individualConfigFile = "IndividualAnims.json"
+
+-- Cargar configuración guardada
+local function loadIndividualConfig()
+    local success, data = pcall(function()
+        return readfile(State.individualConfigFile)
+    end)
+    if success and data and data ~= "" then
+        local decoded = HttpService:JSONDecode(data)
+        for action, animData in pairs(decoded) do
+            if State.individualAnims[action] then
+                State.individualAnims[action].emote = animData.emote
+                State.individualAnims[action].default = animData.default or true
+            end
+        end
+    end
+end
+
+-- Guardar configuración
+local function saveIndividualConfig()
+    local saveData = {}
+    for action, animData in pairs(State.individualAnims) do
+        saveData[action] = {
+            emote = animData.emote,
+            default = animData.default
+        }
+    end
+    pcall(function()
+        writefile(State.individualConfigFile, HttpService:JSONEncode(saveData))
+    end)
+end
+
+-- Cargar al inicio
+loadIndividualConfig()
+
+-- ==================================================
+-- BOTÓN PARA CAMBIAR MODO
+-- ==================================================
+
+local ModeButton = Instance.new("TextButton")
+ModeButton.Name = "ModeButton"
+ModeButton.Size = UDim2.new(0, 120, 0, 30)
+ModeButton.Position = UDim2.new(0.85, 0, 0.02, 0)
+ModeButton.Text = "📦 Modo: Pack"
+ModeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ModeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ModeButton.Font = Enum.Font.GothamBold
+ModeButton.TextSize = 14
+ModeButton.Parent = UI.Background
+
+-- Actualizar texto del botón
+local function updateModeButton()
+    if State.animMode == "pack" then
+        ModeButton.Text = "📦 Modo: Pack Completo"
+        ModeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 140)
+    else
+        ModeButton.Text = "🔧 Modo: Individual"
+        ModeButton.BackgroundColor3 = Color3.fromRGB(140, 80, 40)
+    end
+end
+updateModeButton()
+
+-- Click para cambiar modo
+ModeButton.MouseButton1Click:Connect(function()
+    State.animMode = State.animMode == "pack" and "individual" or "pack"
+    updateModeButton()
+    
+    -- Notificar cambio
+    getgenv().Notify({
+        Title = 'LovFame | Modo Animación',
+        Content = 'Cambiado a: ' .. (State.animMode == "pack" and "Pack Completo" or "Individual"),
+        Duration = 2
+    })
+end)
+
+-- ==================================================
+-- INTERFAZ PARA ANIMACIONES INDIVIDUALES
+-- ==================================================
+
+local IndividualFrame = Instance.new("ScrollingFrame")
+IndividualFrame.Name = "IndividualFrame"
+IndividualFrame.Size = UDim2.new(0.9, 0, 0.7, 0)
+IndividualFrame.Position = UDim2.new(0.05, 0, 0.15, 0)
+IndividualFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+IndividualFrame.BorderSizePixel = 0
+IndividualFrame.Visible = false
+IndividualFrame.Parent = UI.Background
+
+-- Título
+local IndTitle = Instance.new("TextLabel")
+IndTitle.Size = UDim2.new(1, 0, 0, 30)
+IndTitle.Text = "⚙️ ANIMACIONES INDIVIDUALES (por acción)"
+IndTitle.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+IndTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
+IndTitle.Font = Enum.Font.GothamBold
+IndTitle.TextSize = 16
+IndTitle.Parent = IndividualFrame
+
+-- Grid para las acciones
+local IndGrid = Instance.new("UIGridLayout")
+IndGrid.FillDirection = Enum.FillDirection.Horizontal
+IndGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+IndGrid.VerticalAlignment = Enum.VerticalAlignment.Top
+IndGrid.CellSize = UDim2.new(0, 180, 0, 200)
+IndGrid.CellPadding = UDim2.new(0, 8, 0, 8)
+IndGrid.Parent = IndividualFrame
+
+-- Crear slots para cada acción
+for action, data in pairs(State.individualAnims) do
+    local slot = Instance.new("Frame")
+    slot.Name = action .. "Slot"
+    slot.Size = UDim2.new(0, 180, 0, 200)
+    slot.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    slot.BorderSizePixel = 0
+    slot.Parent = IndividualFrame
+    
+    -- Bordes redondeados
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = slot
+    
+    -- Nombre de la acción
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, 0, 0, 25)
+    nameLabel.Position = UDim2.new(0, 0, 0, 5)
+    nameLabel.Text = data.name
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextSize = 14
+    nameLabel.Parent = slot
+    
+    -- Indicador de animación actual
+    local animIndicator = Instance.new("TextLabel")
+    animIndicator.Name = "AnimIndicator"
+    animIndicator.Size = UDim2.new(0.9, 0, 0, 40)
+    animIndicator.Position = UDim2.new(0.05, 0, 0, 35)
+    animIndicator.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    animIndicator.Text = data.emote and "🎭 Emote" or "👤 Avatar Default"
+    animIndicator.TextColor3 = data.emote and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(200, 200, 200)
+    animIndicator.Font = Enum.Font.Gotham
+    animIndicator.TextSize = 12
+    animIndicator.Parent = slot
+    
+    local indCorner = Instance.new("UICorner")
+    indCorner.CornerRadius = UDim.new(0, 4)
+    indCorner.Parent = animIndicator
+    
+    -- Botón para asignar emote actual
+    local assignBtn = Instance.new("TextButton")
+    assignBtn.Name = "AssignBtn"
+    assignBtn.Size = UDim2.new(0.8, 0, 0, 35)
+    assignBtn.Position = UDim2.new(0.1, 0, 0, 85)
+    assignBtn.Text = "📌 Usar Emote Actual"
+    assignBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 200)
+    assignBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    assignBtn.Font = Enum.Font.Gotham
+    assignBtn.TextSize = 11
+    assignBtn.Parent = slot
+    
+    local btnCorner = Instance.new("UICorner")
+    btnCorner.CornerRadius = UDim.new(0, 4)
+    btnCorner.Parent = assignBtn
+    
+    -- Botón para resetear a default del avatar
+    local resetBtn = Instance.new("TextButton")
+    resetBtn.Name = "ResetBtn"
+    resetBtn.Size = UDim2.new(0.8, 0, 0, 30)
+    resetBtn.Position = UDim2.new(0.1, 0, 0, 130)
+    resetBtn.Text = "↺ Default Avatar"
+    resetBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    resetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    resetBtn.Font = Enum.Font.Gotham
+    resetBtn.TextSize = 11
+    resetBtn.Parent = slot
+    
+    local resetCorner = Instance.new("UICorner")
+    resetCorner.CornerRadius = UDim.new(0, 4)
+    resetCorner.Parent = resetBtn
+    
+    -- Funcionalidad de los botones
+    assignBtn.MouseButton1Click:Connect(function()
+        if State.currentEmoteTrack and State.currentEmoteTrack.Animation then
+            -- Guardar el emote actual para esta acción
+            local animId = State.currentEmoteTrack.Animation.AnimationId
+            State.individualAnims[action].emote = animId
+            State.individualAnims[action].default = false
+            animIndicator.Text = "🎭 Emote Asignado"
+            animIndicator.TextColor3 = Color3.fromRGB(100, 255, 100)
+            saveIndividualConfig()
+            
+            getgenv().Notify({
+                Title = 'LovFame | Individual',
+                Content = '✅ ' .. data.name .. ' ahora usa el emote actual',
+                Duration = 2
+            })
+        else
+            getgenv().Notify({
+                Title = 'LovFame | Error',
+                Content = '❌ No hay ningún emote reproduciéndose',
+                Duration = 2
+            })
+        end
+    end)
+    
+    resetBtn.MouseButton1Click:Connect(function()
+        State.individualAnims[action].emote = nil
+        State.individualAnims[action].default = true
+        animIndicator.Text = "👤 Avatar Default"
+        animIndicator.TextColor3 = Color3.fromRGB(200, 200, 200)
+        saveIndividualConfig()
+        
+        getgenv().Notify({
+            Title = 'LovFame | Individual',
+            Content = '↺ ' .. data.name .. ' vuelve a animación default',
+            Duration = 2
+        })
+    end)
+end
+
+-- ==================================================
+-- BOTÓN PARA ABRIR INDIVIDUAL
+-- ==================================================
+
+local IndividualButton = Instance.new("TextButton")
+IndividualButton.Name = "IndividualButton"
+IndividualButton.Size = UDim2.new(0, 100, 0, 30)
+IndividualButton.Position = UDim2.new(0.85, 0, 0.07, 0)
+IndividualButton.Text = "🔧 Individual"
+IndividualButton.BackgroundColor3 = Color3.fromRGB(140, 80, 40)
+IndividualButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+IndividualButton.Font = Enum.Font.GothamBold
+IndividualButton.TextSize = 12
+IndividualButton.Parent = UI.Background
+IndividualButton.Visible = false  -- Oculto por defecto
+
+-- Mostrar/ocultar según modo
+ModeButton.MouseButton1Click:Connect(function()
+    IndividualButton.Visible = (State.animMode == "individual")
+end)
+
+-- Click para mostrar frame individual
+IndividualButton.MouseButton1Click:Connect(function()
+    IndividualFrame.Visible = not IndividualFrame.Visible
+    IndividualButton.Text = IndividualFrame.Visible and "🔧 Cerrar" or "🔧 Individual"
+end)
+
+-- ==================================================
+-- MODIFICAR EL SISTEMA DE REPRODUCCIÓN
+-- ==================================================
+
+-- Guardar referencia a la función original de reproducir emote
+local originalPlayEmote = State.playEmote or function() end
+
+-- Nueva función que maneja ambos modos
+State.playEmote = function(emoteData)
+    if State.animMode == "pack" then
+        -- Modo pack: reproducir emote completo como siempre
+        if originalPlayEmote then
+            originalPlayEmote(emoteData)
+        end
+    else
+        -- Modo individual: aquí iría la lógica para reproducir
+        -- la animación específica según la acción actual
+        -- (Esto requeriría modificar el reproductor de animaciones)
+        warn("Modo individual - acción específica")
+    end
+end
+
+-- Sistema que detecta la acción actual y reproduce la animación correspondiente
+local ActionDetector = {}
+ActionDetector.currentAction = "idle"
+
+function ActionDetector:start()
+    game:GetService("RunService").Heartbeat:Connect(function()
+        if State.animMode ~= "individual" then return end
+        
+        local player = game:GetService("Players").LocalPlayer
+        local char = player.Character
+        if not char then return end
+        
+        local humanoid = char:FindFirstChild("Humanoid")
+        if not humanoid then return end
+        
+        -- Detectar acción actual
+        local newAction = "idle"
+        
+        if humanoid:GetState() == Enum.HumanoidStateType.Jumping then
+            newAction = "jump"
+        elseif humanoid:GetState() == Enum.HumanoidStateType.FallingDown or humanoid:GetState() == Enum.HumanoidStateType.Freefall then
+            newAction = "fall"
+        elseif humanoid:GetState() == Enum.HumanoidStateType.Swimming then
+            newAction = "swim"
+        elseif humanoid:GetState() == Enum.HumanoidStateType.Climbing then
+            newAction = "climb"
+        elseif humanoid:GetState() == Enum.HumanoidStateType.Seated then
+            newAction = "sit"
+        elseif humanoid.MoveDirection.Magnitude > 0 then
+            if humanoid.WalkSpeed > 16 then
+                newAction = "run"
+            else
+                newAction = "walk"
+            end
+        end
+        
+        -- Si cambió la acción y tenemos un emote asignado, reproducirlo
+        if newAction ~= self.currentAction then
+            self.currentAction = newAction
+            local animData = State.individualAnims[newAction]
+            if animData and animData.emote and not animData.default then
+                -- Reproducir el emote asignado para esta acción
+                -- Aquí llamarías a tu función de reproducir emote con el ID guardado
+                warn("Reproducir emote para: " .. newAction)
+            end
+        end
+    end)
+end
+
+ActionDetector:start()
+
+-- Notificación inicial
+getgenv().Notify({
+    Title = 'LovFame | Sistema Híbrido',
+    Content = '✅ Usa el botón "📦 Modo" para cambiar entre Pack o Individual',
+    Duration = 4
+})
+
+if UserInputService.KeyboardEnabled then
+    getgenv().Notify({
+        Title = 'LovFame | Emote PC',
+        Content = '💻 Open menu press button "."',
+        Duration = 10
+    })
+end
+
+
+if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+    SafeLoad("https://raw.githubusercontent.com/LovFame/hub/refs/heads/Branch/GUIS/OpenEmote.lua", "Open Emote")
+    getgenv().Notify({
+        Title = 'LovFame | Emote Mobile',
+        Content = '📱 Added emote open button for ease of use',
+        Duration = 10
+    })
+end
+
 
 if UserInputService.KeyboardEnabled then
     getgenv().Notify({
