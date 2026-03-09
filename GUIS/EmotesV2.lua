@@ -4261,55 +4261,6 @@ task.spawn(function()
     end
 end)
 
-end)
- local StarterGui = game:GetService("StarterGui")
-
- StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, true)
-task.spawn(function()
-    local StarterGui = game:GetService("StarterGui")
-    local CoreGui = game:GetService("CoreGui")
-
-    while true do
-        local robloxGui = CoreGui:FindFirstChild("RobloxGui")
-        local emotesMenu = robloxGui and robloxGui:FindFirstChild("EmotesMenu")
-
-        if not emotesMenu then
-            StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.EmotesMenu, true)
-
-        else
-            local exists = emotesMenu:FindFirstChild("Children") and emotesMenu.Children:FindFirstChild("Main") and
-                               emotesMenu.Children.Main:FindFirstChild("EmotesWheel")
-
-            if exists then
-                local emotesWheel = emotesMenu.Children.Main.EmotesWheel
-                if not emotesWheel:FindFirstChild("Under") or not emotesWheel:FindFirstChild("Top") then
-                    if createGUIElements then
-                        createGUIElements()
-                        loadSpeedEmoteConfig()
-                    end
-
-                    if updateGUIColors then
-                        updateGUIColors()
-                        updatePageDisplay()
-                        loadFavorites()
-                    end
-                end
-            end
-        end
-
-        task.wait(.3)
-    end
-end)
-
-if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
-    SafeLoad("https://raw.githubusercontent.com/LovFame/hub/refs/heads/Branch/GUIS/OpenEmote.lua", "Open Emote")
-    getgenv().Notify({
-        Title = 'LovFame | Emote Mobile',
-        Content = '📱 Added emote open button for ease of use',
-        Duration = 10
-    })
-end
-
 -- ==================================================
 -- SISTEMA HÍBRIDO DE ANIMACIONES
 -- ==================================================
@@ -4653,15 +4604,6 @@ getgenv().Notify({
     Duration = 4
 })
 
-if UserInputService.KeyboardEnabled then
-    getgenv().Notify({
-        Title = 'LovFame | Emote PC',
-        Content = '💻 Open menu press button "."',
-        Duration = 10
-    })
-end
-
-
 if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
     SafeLoad("https://raw.githubusercontent.com/LovFame/hub/refs/heads/Branch/GUIS/OpenEmote.lua", "Open Emote")
     getgenv().Notify({
@@ -4670,7 +4612,6 @@ if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
         Duration = 10
     })
 end
-
 
 if UserInputService.KeyboardEnabled then
     getgenv().Notify({
