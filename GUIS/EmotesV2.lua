@@ -2540,6 +2540,17 @@ local function createGUIElements()
     UI._1left.ImageColor3 = Color3.fromRGB(0, 0, 0)
     UI._1left.ImageTransparency = 0.400
 
+    -- ==================================================
+    -- CREAR BACKGROUND (NECESARIO PARA TUS BOTONES)
+    -- ==================================================
+    UI.Background = Instance.new("Frame")
+    UI.Background.Name = "Background"
+    UI.Background.Parent = emotesWheel
+    UI.Background.BackgroundTransparency = 1
+    UI.Background.Size = UDim2.new(1, 0, 1, 0)
+    UI.Background.Position = UDim2.new(0, 0, 0, 0)
+    UI.Background.ZIndex = 10
+    
     UI._9right.Name = "9right"
     UI._9right.Parent = UI.Under
     UI._9right.BackgroundTransparency = 1.000
@@ -4262,297 +4273,504 @@ task.spawn(function()
 end)
 
 -- ==================================================
--- SISTEMA HÍBRIDO DE ANIMACIONES
+-- SISTEMA DE ANIMACIONES INDIVIDUALES (VERSIÓN CORREGIDA)
 -- ==================================================
 
 -- Extender State
-State.animMode = "pack"  -- "pack" o "individual"
+State.individualMode = State.individualMode or false
 State.individualAnims = State.individualAnims or {
-    idle = { name = "Reposo", emote = nil, default = true },
-    walk = { name = "Caminar", emote = nil, default = true },
-    run = { name = "Correr", emote = nil, default = true },
-    jump = { name = "Saltar", emote = nil, default = true },
-    fall = { name = "Caer", emote = nil, default = true },
-    swim = { name = "Nadar", emote = nil, default = true },
-    climb = { name = "Trepar", emote = nil, default = true },
-    sit = { name = "Sentarse", emote = nil, default = true }
+    idle = { name = "Reposo", anim = nil },
+    walk = { name = "Caminar", anim = nil },
+    run = { name = "Correr", anim = nil },
+    jump = { name = "Saltar", anim = nil },
+    fall = { name = "Caer", anim = nil },
+    swim = { name = "Nadar", anim = nil },
+    climb = { name = "Trepar", anim = nil },
+    sit = { name = "Sentarse", anim = nil }
 }
-State.individualConfigFile = "IndividualAnims.json"
+State.individualFile = "IndividualAnims.json"
+State.selectedActionForAnim = nil
 
--- Cargar configuración guardada
+-- Cargar configuración
 local function loadIndividualConfig()
     local success, data = pcall(function()
-        return readfile(State.individualConfigFile)
+        return readfile(State.individualFile)
     end)
     if success and data and data ~= "" then
         local decoded = HttpService:JSONDecode(data)
-        for action, animData in pairs(decoded) do
+        for action, animId in pairs(decoded) do
             if State.individualAnims[action] then
-                State.individualAnims[action].emote = animData.emote
-                State.individualAnims[action].default = animData.default or true
+                State.individualAnims[action].anim = animId
             end
         end
     end
 end
 
--- Guardar configuración
 local function saveIndividualConfig()
     local saveData = {}
-    for action, animData in pairs(State.individualAnims) do
-        saveData[action] = {
-            emote = animData.emote,
-            default = animData.default
-        }
+    for action, data in pairs(State.individualAnims) do
+        if data.anim then
+            saveData[action] = data.anim
+        end
     end
     pcall(function()
-        writefile(State.individualConfigFile, HttpService:JSONEncode(saveData))
+        writefile(State.individualFile, HttpService:JSONEncode(saveData))
     end)
 end
 
--- Cargar al inicio
 loadIndividualConfig()
 
 -- ==================================================
--- BOTÓN PARA CAMBIAR MODO
+-- ESPERAR A QUE LA GUI EXISTA
 -- ==================================================
-
-local ModeButton = Instance.new("TextButton")
-ModeButton.Name = "ModeButton"
-ModeButton.Size = UDim2.new(0, 120, 0, 30)
-ModeButton.Position = UDim2.new(0.85, 0, 0.02, 0)
-ModeButton.Text = "📦 Modo: Pack"
-ModeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ModeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-ModeButton.Font = Enum.Font.GothamBold
-ModeButton.TextSize = 14
-ModeButton.Parent = UI.Background
-
--- Actualizar texto del botón
-local function updateModeButton()
-    if State.animMode == "pack" then
-        ModeButton.Text = "📦 Modo: Pack Completo"
-        ModeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 140)
-    else
-        ModeButton.Text = "🔧 Modo: Individual"
-        ModeButton.BackgroundColor3 = Color3.fromRGB(140, 80, 40)
+task.spawn(function()
+    local attempts = 0
+    while attempts < 30 and not UI.Background do
+        attempts = attempts + 1
+        task.wait(0.5)
     end
-end
-updateModeButton()
-
--- Click para cambiar modo
-ModeButton.MouseButton1Click:Connect(function()
-    State.animMode = State.animMode == "pack" and "individual" or "pack"
-    updateModeButton()
     
-    -- Notificar cambio
-    getgenv().Notify({
-        Title = 'LovFame | Modo Animación',
-        Content = 'Cambiado a: ' .. (State.animMode == "pack" and "Pack Completo" or "Individual"),
-        Duration = 2
-    })
-end)
-
--- ==================================================
--- INTERFAZ PARA ANIMACIONES INDIVIDUALES
--- ==================================================
-
-local IndividualFrame = Instance.new("ScrollingFrame")
-IndividualFrame.Name = "IndividualFrame"
-IndividualFrame.Size = UDim2.new(0.9, 0, 0.7, 0)
-IndividualFrame.Position = UDim2.new(0.05, 0, 0.15, 0)
-IndividualFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-IndividualFrame.BorderSizePixel = 0
-IndividualFrame.Visible = false
-IndividualFrame.Parent = UI.Background
-
--- Título
-local IndTitle = Instance.new("TextLabel")
-IndTitle.Size = UDim2.new(1, 0, 0, 30)
-IndTitle.Text = "⚙️ ANIMACIONES INDIVIDUALES (por acción)"
-IndTitle.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-IndTitle.TextColor3 = Color3.fromRGB(255, 215, 0)
-IndTitle.Font = Enum.Font.GothamBold
-IndTitle.TextSize = 16
-IndTitle.Parent = IndividualFrame
-
--- Grid para las acciones
-local IndGrid = Instance.new("UIGridLayout")
-IndGrid.FillDirection = Enum.FillDirection.Horizontal
-IndGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-IndGrid.VerticalAlignment = Enum.VerticalAlignment.Top
-IndGrid.CellSize = UDim2.new(0, 180, 0, 200)
-IndGrid.CellPadding = UDim2.new(0, 8, 0, 8)
-IndGrid.Parent = IndividualFrame
-
--- Crear slots para cada acción
-for action, data in pairs(State.individualAnims) do
-    local slot = Instance.new("Frame")
-    slot.Name = action .. "Slot"
-    slot.Size = UDim2.new(0, 180, 0, 200)
-    slot.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-    slot.BorderSizePixel = 0
-    slot.Parent = IndividualFrame
+    if not UI.Background then return end
     
-    -- Bordes redondeados
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 6)
-    corner.Parent = slot
+    -- ==================================================
+    -- BOTÓN PRINCIPAL
+    -- ==================================================
+    local MainBtn = Instance.new("TextButton")
+    MainBtn.Name = "IndividualMainBtn"
+    MainBtn.Size = UDim2.new(0, 120, 0, 32)
+    MainBtn.Position = UDim2.new(0.74, 0, 0.02, 0)
+    MainBtn.Text = "🎬 Individual OFF"
+    MainBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    MainBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    MainBtn.Font = Enum.Font.GothamBold
+    MainBtn.TextSize = 12
+    MainBtn.Parent = UI.Background
     
-    -- Nombre de la acción
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, 0, 0, 25)
-    nameLabel.Position = UDim2.new(0, 0, 0, 5)
-    nameLabel.Text = data.name
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextSize = 14
-    nameLabel.Parent = slot
+    local BtnCorner = Instance.new("UICorner")
+    BtnCorner.CornerRadius = UDim.new(0, 8)
+    BtnCorner.Parent = MainBtn
     
-    -- Indicador de animación actual
-    local animIndicator = Instance.new("TextLabel")
-    animIndicator.Name = "AnimIndicator"
-    animIndicator.Size = UDim2.new(0.9, 0, 0, 40)
-    animIndicator.Position = UDim2.new(0.05, 0, 0, 35)
-    animIndicator.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    animIndicator.Text = data.emote and "🎭 Emote" or "👤 Avatar Default"
-    animIndicator.TextColor3 = data.emote and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(200, 200, 200)
-    animIndicator.Font = Enum.Font.Gotham
-    animIndicator.TextSize = 12
-    animIndicator.Parent = slot
+    -- ==================================================
+    -- VENTANA PRINCIPAL (SELECCIÓN DE ACCIÓN)
+    -- ==================================================
+    local ActionWindow = Instance.new("Frame")
+    ActionWindow.Name = "ActionWindow"
+    ActionWindow.Size = UDim2.new(0, 350, 0, 400)
+    ActionWindow.Position = UDim2.new(0.5, -175, 0.5, -200)
+    ActionWindow.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    ActionWindow.BorderSizePixel = 0
+    ActionWindow.Visible = false
+    ActionWindow.Parent = UI.Background
+    ActionWindow.ZIndex = 100
     
-    local indCorner = Instance.new("UICorner")
-    indCorner.CornerRadius = UDim.new(0, 4)
-    indCorner.Parent = animIndicator
+    local WindowCorner = Instance.new("UICorner")
+    WindowCorner.CornerRadius = UDim.new(0, 12)
+    WindowCorner.Parent = ActionWindow
     
-    -- Botón para asignar emote actual
-    local assignBtn = Instance.new("TextButton")
-    assignBtn.Name = "AssignBtn"
-    assignBtn.Size = UDim2.new(0.8, 0, 0, 35)
-    assignBtn.Position = UDim2.new(0.1, 0, 0, 85)
-    assignBtn.Text = "📌 Usar Emote Actual"
-    assignBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 200)
-    assignBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    assignBtn.Font = Enum.Font.Gotham
-    assignBtn.TextSize = 11
-    assignBtn.Parent = slot
+    local Overlay = Instance.new("Frame")
+    Overlay.Name = "ActionOverlay"
+    Overlay.Size = UDim2.new(1, 0, 1, 0)
+    Overlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    Overlay.BackgroundTransparency = 0.5
+    Overlay.Visible = false
+    Overlay.Parent = UI.Background
+    Overlay.ZIndex = 99
     
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 4)
-    btnCorner.Parent = assignBtn
+    -- Título
+    local TitleBar = Instance.new("Frame")
+    TitleBar.Size = UDim2.new(1, 0, 0, 40)
+    TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    TitleBar.BorderSizePixel = 0
+    TitleBar.Parent = ActionWindow
     
-    -- Botón para resetear a default del avatar
-    local resetBtn = Instance.new("TextButton")
-    resetBtn.Name = "ResetBtn"
-    resetBtn.Size = UDim2.new(0.8, 0, 0, 30)
-    resetBtn.Position = UDim2.new(0.1, 0, 0, 130)
-    resetBtn.Text = "↺ Default Avatar"
-    resetBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    resetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    resetBtn.Font = Enum.Font.Gotham
-    resetBtn.TextSize = 11
-    resetBtn.Parent = slot
+    local TitleCorner = Instance.new("UICorner")
+    TitleCorner.CornerRadius = UDim.new(0, 12)
+    TitleCorner.Parent = TitleBar
     
-    local resetCorner = Instance.new("UICorner")
-    resetCorner.CornerRadius = UDim.new(0, 4)
-    resetCorner.Parent = resetBtn
+    local TitleText = Instance.new("TextLabel")
+    TitleText.Size = UDim2.new(1, -40, 1, 0)
+    TitleText.Position = UDim2.new(0, 10, 0, 0)
+    TitleText.Text = "🎬 SELECCIONA UNA ACCIÓN"
+    TitleText.BackgroundTransparency = 1
+    TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TitleText.Font = Enum.Font.GothamBold
+    TitleText.TextSize = 14
+    TitleText.TextXAlignment = Enum.TextXAlignment.Left
+    TitleText.Parent = TitleBar
     
-    -- Funcionalidad de los botones
-    assignBtn.MouseButton1Click:Connect(function()
-        if State.currentEmoteTrack and State.currentEmoteTrack.Animation then
-            -- Guardar el emote actual para esta acción
-            local animId = State.currentEmoteTrack.Animation.AnimationId
-            State.individualAnims[action].emote = animId
-            State.individualAnims[action].default = false
-            animIndicator.Text = "🎭 Emote Asignado"
-            animIndicator.TextColor3 = Color3.fromRGB(100, 255, 100)
-            saveIndividualConfig()
-            
-            getgenv().Notify({
-                Title = 'LovFame | Individual',
-                Content = '✅ ' .. data.name .. ' ahora usa el emote actual',
-                Duration = 2
-            })
-        else
-            getgenv().Notify({
-                Title = 'LovFame | Error',
-                Content = '❌ No hay ningún emote reproduciéndose',
-                Duration = 2
-            })
-        end
-    end)
+    local CloseBtn = Instance.new("TextButton")
+    CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+    CloseBtn.Position = UDim2.new(1, -35, 0.5, -15)
+    CloseBtn.Text = "✕"
+    CloseBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    CloseBtn.Font = Enum.Font.GothamBold
+    CloseBtn.TextSize = 16
+    CloseBtn.Parent = TitleBar
     
-    resetBtn.MouseButton1Click:Connect(function()
-        State.individualAnims[action].emote = nil
-        State.individualAnims[action].default = true
-        animIndicator.Text = "👤 Avatar Default"
-        animIndicator.TextColor3 = Color3.fromRGB(200, 200, 200)
-        saveIndividualConfig()
+    local CloseCorner = Instance.new("UICorner")
+    CloseCorner.CornerRadius = UDim.new(0, 6)
+    CloseCorner.Parent = CloseBtn
+    
+    -- Lista de acciones (SCROLL)
+    local ActionList = Instance.new("ScrollingFrame")
+    ActionList.Size = UDim2.new(1, -20, 1, -60)
+    ActionList.Position = UDim2.new(0, 10, 0, 50)
+    ActionList.BackgroundTransparency = 1
+    ActionList.BorderSizePixel = 0
+    ActionList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    ActionList.ScrollBarThickness = 6
+    ActionList.Parent = ActionWindow
+    
+    local ActionLayout = Instance.new("UIListLayout")
+    ActionLayout.Padding = UDim.new(0, 8)
+    ActionLayout.Parent = ActionList
+    
+    -- Crear botones de acción
+    for action, data in pairs(State.individualAnims) do
+        local ActionBtn = Instance.new("TextButton")
+        ActionBtn.Name = action .. "Btn"
+        ActionBtn.Size = UDim2.new(1, 0, 0, 50)
+        ActionBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        ActionBtn.Text = ""
+        ActionBtn.Parent = ActionList
         
-        getgenv().Notify({
-            Title = 'LovFame | Individual',
-            Content = '↺ ' .. data.name .. ' vuelve a animación default',
-            Duration = 2
-        })
-    end)
-end
-
--- ==================================================
--- BOTÓN PARA ABRIR INDIVIDUAL
--- ==================================================
-
-local IndividualButton = Instance.new("TextButton")
-IndividualButton.Name = "IndividualButton"
-IndividualButton.Size = UDim2.new(0, 100, 0, 30)
-IndividualButton.Position = UDim2.new(0.85, 0, 0.07, 0)
-IndividualButton.Text = "🔧 Individual"
-IndividualButton.BackgroundColor3 = Color3.fromRGB(140, 80, 40)
-IndividualButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-IndividualButton.Font = Enum.Font.GothamBold
-IndividualButton.TextSize = 12
-IndividualButton.Parent = UI.Background
-IndividualButton.Visible = false  -- Oculto por defecto
-
--- Mostrar/ocultar según modo
-ModeButton.MouseButton1Click:Connect(function()
-    IndividualButton.Visible = (State.animMode == "individual")
-end)
-
--- Click para mostrar frame individual
-IndividualButton.MouseButton1Click:Connect(function()
-    IndividualFrame.Visible = not IndividualFrame.Visible
-    IndividualButton.Text = IndividualFrame.Visible and "🔧 Cerrar" or "🔧 Individual"
-end)
-
--- ==================================================
--- MODIFICAR EL SISTEMA DE REPRODUCCIÓN
--- ==================================================
-
--- Guardar referencia a la función original de reproducir emote
-local originalPlayEmote = State.playEmote or function() end
-
--- Nueva función que maneja ambos modos
-State.playEmote = function(emoteData)
-    if State.animMode == "pack" then
-        -- Modo pack: reproducir emote completo como siempre
-        if originalPlayEmote then
-            originalPlayEmote(emoteData)
-        end
-    else
-        -- Modo individual: aquí iría la lógica para reproducir
-        -- la animación específica según la acción actual
-        -- (Esto requeriría modificar el reproductor de animaciones)
-        warn("Modo individual - acción específica")
+        local BtnCorner = Instance.new("UICorner")
+        BtnCorner.CornerRadius = UDim.new(0, 8)
+        BtnCorner.Parent = ActionBtn
+        
+        -- Nombre
+        local NameLabel = Instance.new("TextLabel")
+        NameLabel.Size = UDim2.new(0.4, -5, 1, 0)
+        NameLabel.Position = UDim2.new(0, 10, 0, 0)
+        NameLabel.Text = data.name
+        NameLabel.BackgroundTransparency = 1
+        NameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        NameLabel.Font = Enum.Font.GothamBold
+        NameLabel.TextSize = 14
+        NameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        NameLabel.Parent = ActionBtn
+        
+        -- Estado
+        local StatusLabel = Instance.new("TextLabel")
+        StatusLabel.Name = "Status"
+        StatusLabel.Size = UDim2.new(0.6, -5, 1, 0)
+        StatusLabel.Position = UDim2.new(0.4, 0, 0, 0)
+        StatusLabel.Text = data.anim and "✅ Asignada" or "⬜ Sin asignar"
+        StatusLabel.BackgroundTransparency = 1
+        StatusLabel.TextColor3 = data.anim and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(180, 180, 180)
+        StatusLabel.Font = Enum.Font.Gotham
+        StatusLabel.TextSize = 12
+        StatusLabel.TextXAlignment = Enum.TextXAlignment.Right
+        StatusLabel.Parent = ActionBtn
+        
+        -- Click para seleccionar acción
+        ActionBtn.MouseButton1Click:Connect(function()
+            State.selectedActionForAnim = action
+            
+            -- Cambiar a ventana de animaciones
+            ActionWindow.Visible = false
+            AnimWindow.Visible = true
+            AnimTitle.Text = "🎬 SELECCIONA ANIMACIÓN PARA: " .. data.name
+        end)
     end
-end
-
--- Sistema que detecta la acción actual y reproduce la animación correspondiente
-local ActionDetector = {}
-ActionDetector.currentAction = "idle"
-
-function ActionDetector:start()
+    
+    ActionList.CanvasSize = UDim2.new(0, 0, 0, ActionLayout.AbsoluteContentSize.Y + 10)
+    
+    -- ==================================================
+    -- VENTANA DE ANIMACIONES
+    -- ==================================================
+    local AnimWindow = Instance.new("Frame")
+    AnimWindow.Name = "AnimWindow"
+    AnimWindow.Size = UDim2.new(0, 400, 0, 450)
+    AnimWindow.Position = UDim2.new(0.5, -200, 0.5, -225)
+    AnimWindow.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    AnimWindow.BorderSizePixel = 0
+    AnimWindow.Visible = false
+    AnimWindow.Parent = UI.Background
+    AnimWindow.ZIndex = 100
+    
+    local AnimCorner = Instance.new("UICorner")
+    AnimCorner.CornerRadius = UDim.new(0, 12)
+    AnimCorner.Parent = AnimWindow
+    
+    -- Título de animaciones
+    local AnimTitleBar = Instance.new("Frame")
+    AnimTitleBar.Size = UDim2.new(1, 0, 0, 40)
+    AnimTitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    AnimTitleBar.BorderSizePixel = 0
+    AnimTitleBar.Parent = AnimWindow
+    
+    local AnimTitleCorner = Instance.new("UICorner")
+    AnimTitleCorner.CornerRadius = UDim.new(0, 12)
+    AnimTitleCorner.Parent = AnimTitleBar
+    
+    local AnimTitle = Instance.new("TextLabel")
+    AnimTitle.Name = "AnimTitle"
+    AnimTitle.Size = UDim2.new(1, -70, 1, 0)
+    AnimTitle.Position = UDim2.new(0, 10, 0, 0)
+    AnimTitle.Text = "🎬 SELECCIONA ANIMACIÓN"
+    AnimTitle.BackgroundTransparency = 1
+    AnimTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    AnimTitle.Font = Enum.Font.GothamBold
+    AnimTitle.TextSize = 12
+    AnimTitle.TextXAlignment = Enum.TextXAlignment.Left
+    AnimTitle.TextWrapped = true
+    AnimTitle.Parent = AnimTitleBar
+    
+    local BackBtn = Instance.new("TextButton")
+    BackBtn.Size = UDim2.new(0, 30, 0, 30)
+    BackBtn.Position = UDim2.new(1, -70, 0.5, -15)
+    BackBtn.Text = "←"
+    BackBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    BackBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    BackBtn.Font = Enum.Font.GothamBold
+    BackBtn.TextSize = 16
+    BackBtn.Parent = AnimTitleBar
+    
+    local BackCorner = Instance.new("UICorner")
+    BackCorner.CornerRadius = UDim.new(0, 6)
+    BackCorner.Parent = BackBtn
+    
+    local AnimCloseBtn = Instance.new("TextButton")
+    AnimCloseBtn.Size = UDim2.new(0, 30, 0, 30)
+    AnimCloseBtn.Position = UDim2.new(1, -35, 0.5, -15)
+    AnimCloseBtn.Text = "✕"
+    AnimCloseBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    AnimCloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    AnimCloseBtn.Font = Enum.Font.GothamBold
+    AnimCloseBtn.TextSize = 16
+    AnimCloseBtn.Parent = AnimTitleBar
+    
+    local AnimCloseCorner = Instance.new("UICorner")
+    AnimCloseCorner.CornerRadius = UDim.new(0, 6)
+    AnimCloseCorner.Parent = AnimCloseBtn
+    
+    -- Buscador
+    local SearchBox = Instance.new("TextBox")
+    SearchBox.Size = UDim2.new(1, -20, 0, 35)
+    SearchBox.Position = UDim2.new(0, 10, 0, 50)
+    SearchBox.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    SearchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    SearchBox.PlaceholderText = "🔍 Buscar animación..."
+    SearchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+    SearchBox.Font = Enum.Font.Gotham
+    SearchBox.TextSize = 12
+    SearchBox.ClearTextOnFocus = false
+    SearchBox.Parent = AnimWindow
+    
+    local SearchCorner = Instance.new("UICorner")
+    SearchCorner.CornerRadius = UDim.new(0, 6)
+    SearchCorner.Parent = SearchBox
+    
+    -- Lista de animaciones (SCROLL)
+    local AnimScroll = Instance.new("ScrollingFrame")
+    AnimScroll.Size = UDim2.new(1, -20, 1, -100)
+    AnimScroll.Position = UDim2.new(0, 10, 0, 95)
+    AnimScroll.BackgroundTransparency = 1
+    AnimScroll.BorderSizePixel = 0
+    AnimScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    AnimScroll.ScrollBarThickness = 6
+    AnimScroll.Parent = AnimWindow
+    
+    local AnimGrid = Instance.new("UIGridLayout")
+    AnimGrid.FillDirection = Enum.FillDirection.Horizontal
+    AnimGrid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    AnimGrid.CellSize = UDim2.new(0, 170, 0, 80)
+    AnimGrid.CellPadding = UDim2.new(0, 8, 0, 8)
+    AnimGrid.Parent = AnimScroll
+    
+    -- ==================================================
+    -- CARGAR ANIMACIONES DESDE EL SCRIPT
+    -- ==================================================
+    local allAnims = {}
+    
+    -- Función para cargar animaciones
+    local function loadAnimsFromScript()
+        -- Usar las animaciones que ya tiene el script
+        if State.animationsData and #State.animationsData > 0 then
+            for _, anim in pairs(State.animationsData) do
+                table.insert(allAnims, {
+                    id = anim.id,
+                    name = anim.name
+                })
+            end
+        else
+            -- Animaciones de respaldo
+            allAnims = {
+                { id = "507770966", name = "Reposo Básico" },
+                { id = "507780674", name = "Caminar Normal" },
+                { id = "656118852", name = "Correr Rápido" },
+                { id = "507765000", name = "Saltar" },
+                { id = "507768106", name = "Caer" },
+                { id = "507779000", name = "Nadar" },
+                { id = "507772141", name = "Trepar" },
+                { id = "507773147", name = "Sentarse" },
+            }
+        end
+    end
+    
+    loadAnimsFromScript()
+    
+    -- Función para actualizar lista de animaciones
+    local function updateAnimList(searchTerm)
+        -- Limpiar
+        for _, child in pairs(AnimScroll:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
+            end
+        end
+        
+        local filtered = {}
+        searchTerm = searchTerm and searchTerm:lower() or ""
+        
+        for _, anim in pairs(allAnims) do
+            if searchTerm == "" or 
+               anim.name:lower():find(searchTerm) or 
+               tostring(anim.id):find(searchTerm) then
+                table.insert(filtered, anim)
+            end
+        end
+        
+        -- Crear botones
+        for _, anim in pairs(filtered) do
+            local AnimBtn = Instance.new("TextButton")
+            AnimBtn.Name = "AnimBtn_" .. anim.id
+            AnimBtn.Size = UDim2.new(0, 170, 0, 80)
+            AnimBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            AnimBtn.Text = ""
+            AnimBtn.Parent = AnimScroll
+            
+            local BtnCorner = Instance.new("UICorner")
+            BtnCorner.CornerRadius = UDim.new(0, 6)
+            BtnCorner.Parent = AnimBtn
+            
+            -- Nombre
+            local NameLabel = Instance.new("TextLabel")
+            NameLabel.Size = UDim2.new(1, -10, 0, 40)
+            NameLabel.Position = UDim2.new(0, 5, 0, 5)
+            NameLabel.Text = anim.name
+            NameLabel.BackgroundTransparency = 1
+            NameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            NameLabel.Font = Enum.Font.GothamBold
+            NameLabel.TextSize = 12
+            NameLabel.TextWrapped = true
+            NameLabel.Parent = AnimBtn
+            
+            -- ID
+            local IDLabel = Instance.new("TextLabel")
+            IDLabel.Size = UDim2.new(1, -10, 0, 20)
+            IDLabel.Position = UDim2.new(0, 5, 0, 50)
+            IDLabel.Text = "ID: " .. anim.id
+            IDLabel.BackgroundTransparency = 1
+            IDLabel.TextColor3 = Color3.fromRGB(150, 150, 150)
+            IDLabel.Font = Enum.Font.Gotham
+            IDLabel.TextSize = 10
+            IDLabel.TextXAlignment = Enum.TextXAlignment.Left
+            IDLabel.Parent = AnimBtn
+            
+            -- Click para asignar
+            AnimBtn.MouseButton1Click:Connect(function()
+                if State.selectedActionForAnim then
+                    -- Asignar animación a la acción seleccionada
+                    State.individualAnims[State.selectedActionForAnim].anim = anim.id
+                    saveIndividualConfig()
+                    
+                    -- Cerrar TODO
+                    State.individualMode = false
+                    MainBtn.Text = "🎬 Individual OFF"
+                    MainBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+                    ActionWindow.Visible = false
+                    AnimWindow.Visible = false
+                    Overlay.Visible = false
+                    
+                    -- Notificar
+                    getgenv().Notify({
+                        Title = 'Asignado',
+                        Content = '✅ ' .. State.individualAnims[State.selectedActionForAnim].name .. ' → ' .. anim.name,
+                        Duration = 3
+                    })
+                    
+                    State.selectedActionForAnim = nil
+                end
+            end)
+        end
+        
+        AnimScroll.CanvasSize = UDim2.new(0, 0, 0, AnimGrid.AbsoluteContentSize.Y + 10)
+    end
+    
+    -- Búsqueda en tiempo real
+    SearchBox.Changed:Connect(function(prop)
+        if prop == "Text" then
+            updateAnimList(SearchBox.Text)
+        end
+    end)
+    
+    -- ==================================================
+    -- FUNCIONALIDAD DE BOTONES
+    -- ==================================================
+    
+    MainBtn.MouseButton1Click:Connect(function()
+        State.individualMode = not State.individualMode
+        
+        if State.individualMode then
+            MainBtn.Text = "🎬 Individual ON"
+            MainBtn.BackgroundColor3 = Color3.fromRGB(100, 70, 40)
+            ActionWindow.Visible = true
+            Overlay.Visible = true
+            AnimWindow.Visible = false
+            updateAnimList("")
+        else
+            MainBtn.Text = "🎬 Individual OFF"
+            MainBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+            ActionWindow.Visible = false
+            AnimWindow.Visible = false
+            Overlay.Visible = false
+        end
+    end)
+    
+    -- Botones de cierre
+    CloseBtn.MouseButton1Click:Connect(function()
+        State.individualMode = false
+        MainBtn.Text = "🎬 Individual OFF"
+        MainBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        ActionWindow.Visible = false
+        AnimWindow.Visible = false
+        Overlay.Visible = false
+    end)
+    
+    AnimCloseBtn.MouseButton1Click:Connect(function()
+        State.individualMode = false
+        MainBtn.Text = "🎬 Individual OFF"
+        MainBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        ActionWindow.Visible = false
+        AnimWindow.Visible = false
+        Overlay.Visible = false
+    end)
+    
+    BackBtn.MouseButton1Click:Connect(function()
+        AnimWindow.Visible = false
+        ActionWindow.Visible = true
+    end)
+    
+    Overlay.MouseButton1Click:Connect(function()
+        State.individualMode = false
+        MainBtn.Text = "🎬 Individual OFF"
+        MainBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+        ActionWindow.Visible = false
+        AnimWindow.Visible = false
+        Overlay.Visible = false
+    end)
+    
+    -- ==================================================
+    -- SISTEMA DE REPRODUCCIÓN AUTOMÁTICA
+    -- ==================================================
+    
+    local currentAction = "idle"
+    local currentTrack = nil
+    
     game:GetService("RunService").Heartbeat:Connect(function()
-        if State.animMode ~= "individual" then return end
+        if not State.individualMode then return end
         
         local player = game:GetService("Players").LocalPlayer
         local char = player.Character
@@ -4561,7 +4779,7 @@ function ActionDetector:start()
         local humanoid = char:FindFirstChild("Humanoid")
         if not humanoid then return end
         
-        -- Detectar acción actual
+        -- Detectar acción
         local newAction = "idle"
         
         if humanoid:GetState() == Enum.HumanoidStateType.Jumping then
@@ -4582,27 +4800,41 @@ function ActionDetector:start()
             end
         end
         
-        -- Si cambió la acción y tenemos un emote asignado, reproducirlo
-        if newAction ~= self.currentAction then
-            self.currentAction = newAction
-            local animData = State.individualAnims[newAction]
-            if animData and animData.emote and not animData.default then
-                -- Reproducir el emote asignado para esta acción
-                -- Aquí llamarías a tu función de reproducir emote con el ID guardado
-                warn("Reproducir emote para: " .. newAction)
+        -- Reproducir si cambió
+        if newAction ~= currentAction then
+            currentAction = newAction
+            local animId = State.individualAnims[newAction] and State.individualAnims[newAction].anim
+            
+            -- Detener anterior
+            if currentTrack and currentTrack.IsPlaying then
+                currentTrack:Stop()
+            end
+            
+            -- Reproducir nueva si existe
+            if animId then
+                local anim = Instance.new("Animation")
+                anim.AnimationId = "rbxassetid://" .. animId
+                
+                local success, track = pcall(function()
+                    return humanoid.Animator:LoadAnimation(anim)
+                end)
+                
+                if success and track then
+                    currentTrack = track
+                    currentTrack.Priority = Enum.AnimationPriority.Action
+                    currentTrack.Looped = true
+                    currentTrack:Play()
+                end
             end
         end
     end)
-end
-
-ActionDetector:start()
-
--- Notificación inicial
-getgenv().Notify({
-    Title = 'LovFame | Sistema Híbrido',
-    Content = '✅ Usa el botón "📦 Modo" para cambiar entre Pack o Individual',
-    Duration = 4
-})
+    
+    getgenv().Notify({
+        Title = 'LovFame | Individual',
+        Content = '✅ Sistema listo - Selecciona acción → animación',
+        Duration = 4
+    })
+end)
 
 if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
     SafeLoad("https://raw.githubusercontent.com/LovFame/hub/refs/heads/Branch/GUIS/OpenEmote.lua", "Open Emote")
